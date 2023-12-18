@@ -1,8 +1,12 @@
+from __future__ import annotations
 import re
 from enum import auto, Enum
-from typing import Optional, cast
+from typing import Optional, cast, TYPE_CHECKING
 from utilities import ColorCoding, convert_minutes
-from delivery_service.new_truck import Truck
+
+
+if TYPE_CHECKING:
+    from delivery_services.truck import Truck
 
 EOD = 60 * 24
 
@@ -19,12 +23,12 @@ class PkgObject:
         if time == 'EOD':
             return EOD
 
-        hrs, mins, secs = re.search(r'(?i)(\d?\d):(\d\d)', time).groups()
+        hrs, mins = re.search(r'(?i)(\d?\d):(\d\d)', time).groups()
         return (int(hrs) * 60) + int(mins)
 
     availability = 0.0
-    next_pkg: set[PkgObject]
-    depend_pkg: set[int]
+    next_pkg: set[PkgObject]()
+    depend_pkg: set[int]()
     pkgs_delivered = 0
     truck: Optional[int] = None
     truck_load_time: Optional[float] = None

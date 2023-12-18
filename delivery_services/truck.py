@@ -1,7 +1,13 @@
+from __future__ import annotations
 from utilities import debugger
+from typing import Union, TYPE_CHECKING
 from delivery_services.pkg_handler import PkgObject
 from data_services.graph import DHGraph
 
+if TYPE_CHECKING:
+    from delivery_hub import DeliveryHub
+    from pkg_handler import PkgObject
+    from data_services.graph import DHGraph
 
 class Truck:
     truck_number = 0
@@ -24,13 +30,13 @@ class Truck:
         self.__truck_number = self.get_truck_number()
         self.pkg_lst = []
 
-    def deliver_packages(self, graph: DHGraph):
+    def deliver_packages(self, dh_graph: DHGraph[Union[DeliveryHub, str]]) -> None:
         self.deliveries_completed += 1
         prev: str = ''
         curr: str = "BASE"
         for pkg in self.pkg_lst:
             curr = pkg.addr
-            self.total_miles += graph.get_distance(prev, curr)
+            self.total_miles += dh_graph.get_distance(prev, curr)
             pkg.delivered_status(self)
             truck_info = (f'Truck number {self.truck_number} \ndelivered package, ID# {pkg.pkg_id}\n'
                           f'at {pkg.delivered_time}. The package was delivered to {pkg.addr}'
@@ -38,7 +44,7 @@ class Truck:
             debugger(truck_info)
 
         self.pkg_lst.clear()
-        self.total_miles += graph.get_distance(curr, "BASE")
+        self.total_miles += dh_graph.get_distance(curr, "BASE")
         debugger(f'Truck number {self.truck_number} returned to base with {round(self.total_miles, 1)}'
                  f'total miles traveled.')
 

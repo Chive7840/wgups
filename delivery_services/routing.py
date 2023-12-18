@@ -1,11 +1,12 @@
 # External libraries
-from truck import Truck
-# Internal Modules
-from delivery_hub import DeliveryHub
-from delivery_services.pkg_handler import PkgObject
-from data_services import DHGraph, HashTable
 import csv
 from typing import Iterable, Union, cast
+# Internal Modules
+from delivery_services.truck import Truck
+from delivery_services.delivery_hub import DeliveryHub
+from delivery_services.pkg_handler import PkgObject
+from data_services import DHGraph, HashTable
+
 
 pkgs_file = '../input_files/reformatted_package.csv'
 distance_file = '../input_files/reformatted_dist.csv'
@@ -31,16 +32,18 @@ def pkg_importer() -> tuple[HashTable[int, PkgObject], HashTable[str, list[PkgOb
     pkg_dest = HashTable[str, list[PkgObject]]()
     dependency_lst = HashTable[int, set[PkgObject]]()
 
-    with open(pkgs_file) as pkg_f:
-        for row in csv.reader(pkg_f, delimiter=','):
+    with open('./input_files/reformatted_package.csv') as pkg_f:
+        pkg_reader = csv.reader(pkg_f, delimiter=',')
+        next(pkg_reader)
+        for row in pkg_reader:
             pkg = PkgObject(*row)
             pkgs.insert(pkg.pkg_id, pkg)
-            if pkgs_lst := pkg_dest.get(pkg.addr) is None:
+            if (pkgs_lst := pkg_dest.get(pkg.addr)) is None:
                 pkgs_lst: list[PkgObject] = []
                 pkg_dest.insert(pkg.addr, pkgs_lst)
             pkgs_lst.append(pkg)
             for dep_pkg in pkg.depend_pkg:
-                if dep_pkgs := dependency_lst.get(dep_pkg) is None:
+                if (dep_pkgs := dependency_lst.get(dep_pkg)) is None:
                     dep_pkgs = set()
                     dependency_lst.insert(dep_pkg, dep_pkgs)
                 dep_pkgs.add(pkg)
@@ -165,16 +168,16 @@ def distance_finder() -> DHGraph[Union[DeliveryHub, str]]:
     :return: Graphed Delivery Hubs
     """
     dh_graph = DHGraph[Union[DeliveryHub, str]]()
-    with open(distance_file) as dist_f:
+    with open('./input_files/tmp_reformatted_dist.csv') as dist_f:
         delivery_hubs: list[DeliveryHub] = []
-
-        for dh_name, dh_addr, *distances in csv.reader(dist_f, delimiter=',', quotechar='"'):
+        csv_reader = csv.reader(dist_f, delimiter=';', quotechar='"')
+        for dh_name, dh_addr, *dh_dists in csv_reader:
             hub = DeliveryHub(dh_name, dh_addr)
-            dh_graph.insert_vertex(hub)
+            dh_graph.insert_hub(hub)
             delivery_hubs.append(hub)
-            for h, distance in enumerate(distances):
-                dh_graph.insert_edge(hub, delivery_hubs[h], float(distance))
-    return dh_graph
+            for (h, dist) in enumerate(dh_dists):
+                dh_graph.insert_edge(hub, delivery_hubs[h], float(dist))
+        return dh_graph
 
 
 def find_nearest_hub(pkgs: Iterable[PkgObject], location: Union[str, DeliveryHub]) -> PkgObject:

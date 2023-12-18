@@ -1,4 +1,16 @@
+import re
 import os
+from typing import Any, Match
+
+
+
+def __direction_to_letter(m: Match[str]) -> str:
+    match = m.group(0)[0]
+    return ' ' if match == '\n' else match.upper()
+
+
+def normalize_address(address: str) -> str:
+    return re.sub(r'(?i)(north|south|east|west|\n)', __direction_to_letter, address.strip())
 
 
 class ColorCoding:
@@ -9,23 +21,23 @@ class ColorCoding:
     UBLUE = "\033[4;34m"
 
     @staticmethod
-    def white(highlight: any) -> str:
+    def white(highlight: Any) -> str:
         return f'{ColorCoding.UWHITE}{highlight}{ColorCoding.UWHITE}'
 
     @staticmethod
-    def cyan(highlight: any) -> str:
+    def cyan(highlight: Any) -> str:
         return f'{ColorCoding.UCYAN}{highlight}{ColorCoding.UWHITE}'
 
     @staticmethod
-    def green(highlight: any) -> str:
+    def green(highlight: Any) -> str:
         return f'{ColorCoding.UGREEN}{highlight}{ColorCoding.UWHITE}'
 
     @staticmethod
-    def red(highlight: any) -> str:
+    def red(highlight: Any) -> str:
         return f'{ColorCoding.URED}{highlight}{ColorCoding.UWHITE}'
 
     @staticmethod
-    def blue(highlight: any) -> str:
+    def blue(highlight: Any) -> str:
         return f'{ColorCoding.UBLUE}{highlight}{ColorCoding.UWHITE}'
 
 
