@@ -7,11 +7,11 @@ hsh_val = TypeVar('hsh_val')
 
 class HashTable(Generic[hsh_ind, hsh_val]):
     bucket_max = 2
-    storage = list[list[tuple[hsh_ind, hsh_val]]]
+    tbl_storage = list[list[tuple[hsh_ind, hsh_val]]]
 
     def __init__(self) -> None:
-        self.__primes_generator = prime_num_gen()
-        self.table_store_size = next(self.__primes_generator)
+        self.primes_generator = prime_num_gen()
+        self.table_store_size = next(self.primes_generator)
         self.set_storage()
         self.size = 0
         self.resize_option = True
@@ -31,16 +31,9 @@ class HashTable(Generic[hsh_ind, hsh_val]):
         if len(tmp_lst) > self.bucket_max:
             self.resize_table()
 
-    def get_pkg_by_id(self, pkg_id: hsh_ind) -> Optional[hsh_val]:
-        bkt_lst = self.get_bucket(pkg_id)
-        for val in bkt_lst:
-            if val[0] == pkg_id:
-                return val[1]
-        return None
-
     def get_bucket(self, index: hsh_ind) -> list[tuple[hsh_ind, hsh_val]]:
         bucket_index = hash(index) % self.table_store_size
-        return self.storage[bucket_index]
+        return self.tbl_storage[bucket_index]
 
     def get(self, index: hsh_ind) -> Optional[hsh_val]:
         for (bucket_ind, bucket_val) in self.get_bucket(index):
@@ -50,28 +43,28 @@ class HashTable(Generic[hsh_ind, hsh_val]):
         return None
 
     def set_storage(self) -> None:
-        self.storage = [[] for _ in range(self.table_store_size)]
+        self.tbl_storage = [[] for _ in range(self.table_store_size)]
 
     def resize_table(self) -> None:
         if not self.resize_option:
             return
         self.resize_option = False
 
-        self.table_store_size = next(self.__primes_generator)
-        old_size = self.storage
+        self.table_store_size = next(self.primes_generator)
+        old_size = self.tbl_storage
         self.set_storage()
         for item in old_size:
             for (k, v) in item:
                 self.insert(k, v)
 
     # Dunder method for checking if a provided index input is valid
-    def __contains__(self, index: hsh_ind) -> bool:
+    def __contains__(self, index: hsh_ind):
         tmp_bucket = self.get_bucket(index)
-        for (k, _) in tmp_bucket:
-            if k == index:
+        for (x, _) in tmp_bucket:
+            if x == index:
                 return True
         return False
 
     def __iter__(self):
-        for item in self.storage:
+        for item in self.tbl_storage:
             yield from item
