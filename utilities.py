@@ -4,13 +4,15 @@ from typing import Any, Match
 
 
 
-def __direction_to_letter(m: Match[str]) -> str:
+def cardinal_to_letter(m: Match[str]) -> str:
     match = m.group(0)[0]
     return ' ' if match == '\n' else match.upper()
 
 
 def normalize_address(address: str) -> str:
-    return re.sub(r'(?i)(north|south|east|west|\n)', __direction_to_letter, address.strip())
+    corrected = re.sub(r'(?i)(north|south|east|west|\n)', cardinal_to_letter,
+                       address.strip())
+    return corrected
 
 
 class ColorCoding:
