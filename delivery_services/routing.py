@@ -8,15 +8,15 @@ from delivery_services.pkg_handler import PkgObject
 from data_services import DHGraph, HashTable
 
 
-pkgs_file = '../input_files/reformatted_package.csv'
-distance_file = '../input_files/reformatted_dist.csv'
+pkgs_file = '../input_files/__WGUPS Package File.csv'
+distance_file = '../input_files/__WGUPS Distance Table.csv'
 
 BASE = 'BASE'
 time_at_base = 60 * 8
 
-__TRUCKS_ALL: [Truck]
-__PKGS_ALL: HashTable[int, PkgObject]
-__GRAPH: DHGraph[Union[DeliveryHub, str]]
+TRUCKS_ALL: [Truck]
+PKGS_ALL: HashTable[int, PkgObject]
+GRAPH: DHGraph[Union[DeliveryHub, str]]
 
 wrong_addr = None
 
@@ -32,7 +32,7 @@ def pkg_importer() -> tuple[HashTable[int, PkgObject], HashTable[str, list[PkgOb
     pkg_dest = HashTable[str, list[PkgObject]]()
     dependency_lst = HashTable[int, set[PkgObject]]()
 
-    with open('./input_files/reformatted_package.csv') as pkg_f:
+    with open('../input_files/__WGUPS Package File.csv') as pkg_f:
         pkg_reader = csv.reader(pkg_f, delimiter=',')
         next(pkg_reader)
         for row in pkg_reader:
@@ -64,7 +64,7 @@ def sort_packages(pkgs: Iterable[PkgObject]):
     pkg_count = float('inf')
     while pkg_count > 2:
         pkg_count = 0
-        for truck in __TRUCKS_ALL:
+        for truck in TRUCKS_ALL:
             if truck.truck_full():
                 continue
             __min = float('inf')
@@ -72,7 +72,7 @@ def sort_packages(pkgs: Iterable[PkgObject]):
             for pkg in pkgs:
                 if pkg.pkg_delivery_eligibility(truck):
                     pkg_count += 1
-                    distance = __GRAPH.get_distance(truck.truck_location(), pkg.addr)
+                    distance = GRAPH.get_distance(truck.truck_location(), pkg.addr)
                     if distance < __min:
                         __min = distance
                         nearest = pkg
@@ -88,13 +88,13 @@ def priority_first(pkg_dest: HashTable[str, list[PkgObject]]) -> None:
     :param pkg_dest:
     :return: None
     """
-    priority_pkgs = set([pkg[1] for pkg in __PKGS_ALL
+    priority_pkgs = set([pkg[1] for pkg in PKGS_ALL
                          if any([pkg[1].pkg_prioritizer(truck.get_time_elapsed())
-                                 and pkg[1].pkg_delivery_eligibility(truck) for truck in __PKGS_ALL])])
+                                 and pkg[1].pkg_delivery_eligibility(truck) for truck in PKGS_ALL])])
 
-    __TRUCKS_ALL.sort(key=lambda truck: truck.total_miles)
+    TRUCKS_ALL.sort(key=lambda truck: truck.total_miles)
 
-    for truck in __TRUCKS_ALL:
+    for truck in TRUCKS_ALL:
 
         while not truck.truck_full() and len(priority_pkgs) != 0:
             nearest = find_nearest_hub(priority_pkgs, truck.truck_location())
@@ -123,12 +123,12 @@ def deliver_remainder_of_pkgs() -> int:
     :param: None
     :return: int
     """
-    non_priority_pkgs = [pkg[1] for pkg in __PKGS_ALL if pkg[1].at_base()]
+    non_priority_pkgs = [pkg[1] for pkg in PKGS_ALL if pkg[1].at_base()]
     sort_packages(non_priority_pkgs)
     return route_trucks()
 
 
-def delivery_scheduler() -> tuple[HashTable[int, PkgObject], list[Truck]]:
+def auto_router() -> tuple[HashTable[int, PkgObject], list[Truck]]:
     """
     Assume:
     m = number of delivery hubs
@@ -136,28 +136,28 @@ def delivery_scheduler() -> tuple[HashTable[int, PkgObject], list[Truck]]:
         T(n) = O(m**2) + O(n)
         S(n) = O(m**2) + O(n)
     :param: None
-    :return: __PKGS_ALL, __TRUCKS
+    :return: PKGS_ALL, TRUCKS
     """
-    global __PKGS_ALL
-    global __TRUCKS_ALL
-    global __GRAPH
+    global PKGS_ALL
+    global TRUCKS_ALL
+    global GRAPH
     # O(n)
-    __PKGS_ALL, pkg_dest = pkg_importer()
-    __TRUCKS_ALL = [Truck(), Truck()]
+    PKGS_ALL, pkg_dest = pkg_importer()
+    TRUCKS_ALL = [Truck(), Truck()]
     # O(m**2)
-    __GRAPH = distance_finder()
+    GRAPH = distance_finder()
 
     priority_pending_delivery = True
     while priority_pending_delivery:
         priority_first(pkg_dest)
-        if priority_pending_delivery := any([not truck.truck_empty() for truck in __TRUCKS_ALL]):
+        if priority_pending_delivery := any([not truck.truck_empty() for truck in TRUCKS_ALL]):
             deliver_remainder_of_pkgs()
 
-    remaining_pkgs = sum(map(lambda x: 0 if x[1].pkg_delivered() else 1, __PKGS_ALL))
+    remaining_pkgs = sum(map(lambda x: 0 if x[1].pkg_delivered() else 1, PKGS_ALL))
     while remaining_pkgs != 0:
         remaining_pkgs -= deliver_remainder_of_pkgs()
 
-    return __PKGS_ALL, __TRUCKS_ALL
+    return PKGS_ALL, TRUCKS_ALL
 
 
 def distance_finder() -> DHGraph[Union[DeliveryHub, str]]:
@@ -168,10 +168,9 @@ def distance_finder() -> DHGraph[Union[DeliveryHub, str]]:
     :return: Graphed Delivery Hubs
     """
     dh_graph = DHGraph[Union[DeliveryHub, str]]()
-    with open('./input_files/tmp_reformatted_dist.csv') as dist_f:
+    with open(distance_file) as dist_f:
         delivery_hubs: list[DeliveryHub] = []
-        csv_reader = csv.reader(dist_f, delimiter=';', quotechar='"')
-        for dh_name, dh_addr, *dh_dists in csv_reader:
+        for dh_name, dh_addr, *dh_dists in csv.reader(dist_f, delimiter=';', quotechar='"'):
             hub = DeliveryHub(dh_name, dh_addr)
             dh_graph.insert_hub(hub)
             delivery_hubs.append(hub)
@@ -190,7 +189,7 @@ def find_nearest_hub(pkgs: Iterable[PkgObject], location: Union[str, DeliveryHub
     min_dist = float("inf")
     closest_hub = None
     for pkg in pkgs:
-        distance = __GRAPH.get_distance(pkg.addr, location)
+        distance = GRAPH.get_distance(pkg.addr, location)
         if distance < min_dist:
             min_dist = distance
             next_nearest = pkg
@@ -207,13 +206,13 @@ def route_trucks() -> int:
     """
     global wrong_addr
     if wrong_addr is None:
-        wrong_addr = [pkg[1] for pkg in __TRUCKS_ALL if pkg[1].wrong_address]
+        wrong_addr = [pkg[1] for pkg in TRUCKS_ALL if pkg[1].wrong_address]
 
     delivered = 0
 
-    for truck in __TRUCKS_ALL:
+    for truck in TRUCKS_ALL:
         delivered += len(truck.pkg_lst)
-        truck.load_truck(__GRAPH)
+        truck.load_truck(GRAPH)
 
         if len(wrong_addr) != 0:
             for pkg in wrong_addr:

@@ -6,7 +6,7 @@ import utilities
 class DeliveryHub:
     def __init__(self, dh_name: str, dh_address: str) -> None:
         self.dh_name = dh_name
-        self.dh_address = utilities.normalize_address(dh_address)
+        self.dh_address = utilities.clean_address(dh_address)
 
     def __str__(self) -> str:
         return self.dh_address

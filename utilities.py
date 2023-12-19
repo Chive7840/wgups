@@ -1,16 +1,23 @@
 import re
 import os
+import string
 from typing import Any, Match
+import pandas as pd
 
 
-
-def cardinal_to_letter(m: Match[str]) -> str:
-    match = m.group(0)[0]
-    return ' ' if match == '\n' else match.upper()
+re_cardinal_dirs = re.compile(r'(?i)(north|east|south|west|\n)')
 
 
-def normalize_address(address: str) -> str:
-    corrected = re.sub(r'(?i)(north|south|east|west|\n)', cardinal_to_letter,
+def cardinal_to_letter(nl_match: Match[str]) -> str:
+    nl_match = nl_match.group(0)[0]
+    if nl_match == '\n':
+        return ''
+    else:
+        nl_match.upper()
+
+
+def clean_address(address: str) -> str:
+    corrected = re.sub(re_cardinal_dirs, cardinal_to_letter,
                        address.strip())
     return corrected
 
