@@ -1,13 +1,27 @@
 from __future__ import annotations
-from utilities import debugger
+import logging
+from utilities import debug, convert_minutes
 from typing import Union, TYPE_CHECKING
-from delivery_services.pkg_handler import PkgObject
-from data_services.graph import DHGraph
+
+# Creates a logger using the module name
+logger = logging.getLogger(__name__)
+# Specifies that only DEBUG level logs should be saved
+logger.setLevel(logging.DEBUG)
+# Specifies the name and path for the log file
+routing_handler = logging.FileHandler('../delivery_services/delivery_logs/truck.log')
+# Specifies a format for the logs being recorded
+formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(name)s : %(message)s')
+# Sets the handler's formatter
+routing_handler.setFormatter(formatter)
+# Adds the file handler to the logger
+logger.addHandler(routing_handler)
+
 
 if TYPE_CHECKING:
     from delivery_hub import DeliveryHub
     from pkg_handler import PkgObject
     from data_services.graph import DHGraph
+
 
 class Truck:
     truck_number = 0
@@ -22,7 +36,7 @@ class Truck:
         return (8 * 60) + (time / 18 * 60)
 
     total_miles: float = 0
-    pkg_lst = [PkgObject]
+    pkg_lst: list[PkgObject]
     __truck_number: int
     deliveries_completed = 0
 
@@ -30,33 +44,16 @@ class Truck:
         self.__truck_number = self.get_truck_number()
         self.pkg_lst = []
 
-    def deliver_packages(self, dh_graph: DHGraph[Union[DeliveryHub, str]]) -> None:
-        self.deliveries_completed += 1
-        prev: str = ''
-        curr: str = "BASE"
-        for pkg in self.pkg_lst:
-            curr = pkg.addr
-            self.total_miles += dh_graph.get_distance(prev, curr)
-            pkg.delivered_status(self)
-            truck_info = (f'Truck number {self.truck_number} \ndelivered package, ID# {pkg.pkg_id}\n'
-                          f'at {pkg.delivered_time}. The package was delivered to {pkg.addr}'
-                          f'after traveling {self.total_miles} miles.')
-            debugger(truck_info)
-
-        self.pkg_lst.clear()
-        self.total_miles += dh_graph.get_distance(curr, "BASE")
-        debugger(f'Truck number {self.truck_number} returned to base with {round(self.total_miles, 1)}'
-                 f'total miles traveled.')
-
-    def truck_cap(self) -> int:
-        return 16 - len(self.pkg_lst)
-
     def load_truck(self, pkg: PkgObject) -> None:
         if self.truck_full():
+            logger.exception(f'Package ID: {pkg.pkg_id} cannot be loaded onto {self.get_truck_number()}.')
             raise Exception
 
         pkg.en_route_status(self)
         self.pkg_lst.append(pkg)
+
+    def truck_cap(self) -> int:
+        return 16 - len(self.pkg_lst)
 
     def get_time_elapsed(self) -> float:
         return self.elapsed_time(self.total_miles)
@@ -68,8 +65,26 @@ class Truck:
         return len(self.pkg_lst) == 0
 
     def truck_location(self) -> str:
-        if self.truck_empty():
-            return 'At Base'
-        else:
-            return self.pkg_lst[-1].addr
+        return 'HUB' if self.truck_empty() else self.pkg_lst[-1].address
+
+    def deliver_packages(self, dh_graph: DHGraph[Union[DeliveryHub, str]]) -> None:
+        self.deliveries_completed += 1
+        prev: str = ''
+        curr: str = 'HUB'
+        for pkg in self.pkg_lst:
+            prev = curr
+            curr = pkg.address
+            self.total_miles += dh_graph.get_distance(prev, curr)
+            pkg.delivered_status(self)
+            truck_info = f'truck #: {self.__truck_number}'
+            truck_info += f'delivered: {pkg.pkg_id}'
+            truck_info += f'at {convert_minutes(pkg.delivered_at_time)} o\'clock local time.'
+            truck_info += f'The package was left at {pkg.address}'
+            truck_info += f'after having traveled a total of {round(self.total_miles, 1)} miles.'
+            logger.debug(truck_info)
+
+        self.pkg_lst.clear()
+        self.total_miles += dh_graph.get_distance(curr, 'HUB')
+        debug(f'Truck number {self.truck_number} returned to base with {round(self.total_miles, 1)}'
+                 f'total miles traveled.')
 

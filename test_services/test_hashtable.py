@@ -35,8 +35,8 @@ class TestHashTable(unittest.TestCase):
     def test_insert_method(self):
         tst_table = HashTable[int, int]()
         tst_table.insert(3, 4)
-        self.assertEqual(tst_table.tbl_storage, [[], [(3, 4)]])
+        self.assertEqual(tst_table.__tbl_storage, [[], [(3, 4)]])
         self.assertEqual(tst_table.size, 1)
         tst_table.insert(3,  5)
-        self.assertEqual(tst_table.tbl_storage, [[], [(3, 5)]])
+        self.assertEqual(tst_table.__tbl_storage, [[], [(3, 5)]])
         self.assertEqual(tst_table.size, 1)

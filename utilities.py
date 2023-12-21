@@ -9,49 +9,47 @@ re_cardinal_dirs = re.compile(r'(?i)(north|east|south|west|\n)')
 
 
 def cardinal_to_letter(nl_match: Match[str]) -> str:
-    nl_match = nl_match.group(0)[0]
-    if nl_match == '\n':
-        return ''
-    else:
-        nl_match.upper()
+    tmp_match = nl_match.group(0)[0]
+    if tmp_match == '\n':
+        return ' ' if tmp_match == '\n' else tmp_match.upper()
 
 
 def clean_address(address: str) -> str:
-    corrected = re.sub(re_cardinal_dirs, cardinal_to_letter,
+    corrected = re.sub(r'(?i)(north|east|south|west|\n)', cardinal_to_letter,
                        address.strip())
     return corrected
 
 
 class ColorCoding:
-    UWHITE = "\033[4;37m"
-    UCYAN = "\033[4;36m"
-    UGREEN = "\033[4;32m"
-    URED = "\033[4;31m"
-    UBLUE = "\033[4;34m"
+    UWHITE = '\033[4;37m'
+    UCYAN = '\033[4;36m'
+    UGREEN = '\033[4;32m'
+    URED = '\033[4;31m'
+    UBLUE = '\033[4;34m'
 
     @staticmethod
-    def white(highlight: Any) -> str:
+    def uwhite(highlight: Any) -> str:
         return f'{ColorCoding.UWHITE}{highlight}{ColorCoding.UWHITE}'
 
     @staticmethod
-    def cyan(highlight: Any) -> str:
+    def ucyan(highlight: Any) -> str:
         return f'{ColorCoding.UCYAN}{highlight}{ColorCoding.UWHITE}'
 
     @staticmethod
-    def green(highlight: Any) -> str:
+    def ugreen(highlight: Any) -> str:
         return f'{ColorCoding.UGREEN}{highlight}{ColorCoding.UWHITE}'
 
     @staticmethod
-    def red(highlight: Any) -> str:
+    def ured(highlight: Any) -> str:
         return f'{ColorCoding.URED}{highlight}{ColorCoding.UWHITE}'
 
     @staticmethod
-    def blue(highlight: Any) -> str:
+    def ublue(highlight: Any) -> str:
         return f'{ColorCoding.UBLUE}{highlight}{ColorCoding.UWHITE}'
 
 
-def debugger(*args) -> None:
-    if 'DEBUGGER' in os.environ:
+def debug(*args) -> None:
+    if 'DEBUG' in os.environ:
         print(*args)
 
 
@@ -91,4 +89,4 @@ def prime_num_gen():
 
 
 def convert_minutes(minutes: float) -> str:
-    return f'{int(minutes / 60)}:{int(minutes % 60)}:00'
+    return f'{int(minutes / 60)}:{int(minutes % 60):00}'
