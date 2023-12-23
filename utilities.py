@@ -1,51 +1,6 @@
 import re
 import os
-import string
 from typing import Any, Match
-import pandas as pd
-
-
-re_cardinal_dirs = re.compile(r'(?i)(north|east|south|west|\n)')
-
-
-def cardinal_to_letter(nl_match: Match[str]) -> str:
-    tmp_match = nl_match.group(0)[0]
-    if tmp_match == '\n':
-        return ' ' if tmp_match == '\n' else tmp_match.upper()
-
-
-def clean_address(address: str) -> str:
-    corrected = re.sub(r'(?i)(north|east|south|west|\n)', cardinal_to_letter,
-                       address.strip())
-    return corrected
-
-
-class ColorCoding:
-    UWHITE = '\033[4;37m'
-    UCYAN = '\033[4;36m'
-    UGREEN = '\033[4;32m'
-    URED = '\033[4;31m'
-    UBLUE = '\033[4;34m'
-
-    @staticmethod
-    def uwhite(highlight: Any) -> str:
-        return f'{ColorCoding.UWHITE}{highlight}{ColorCoding.UWHITE}'
-
-    @staticmethod
-    def ucyan(highlight: Any) -> str:
-        return f'{ColorCoding.UCYAN}{highlight}{ColorCoding.UWHITE}'
-
-    @staticmethod
-    def ugreen(highlight: Any) -> str:
-        return f'{ColorCoding.UGREEN}{highlight}{ColorCoding.UWHITE}'
-
-    @staticmethod
-    def ured(highlight: Any) -> str:
-        return f'{ColorCoding.URED}{highlight}{ColorCoding.UWHITE}'
-
-    @staticmethod
-    def ublue(highlight: Any) -> str:
-        return f'{ColorCoding.UBLUE}{highlight}{ColorCoding.UWHITE}'
 
 
 def debug(*args) -> None:
@@ -89,4 +44,45 @@ def prime_num_gen():
 
 
 def convert_minutes(minutes: float) -> str:
-    return f'{int(minutes / 60)}:{int(minutes % 60):00}'
+    return f'{int(minutes / 60)}:{int(minutes % 60):02}'
+
+
+def cardinal_to_letter(nl_match: Match[str]) -> str:
+    tmp_match = nl_match.group(0)[0]
+    if tmp_match == '\n':
+        return ' ' if tmp_match == '\n' else tmp_match.upper()
+
+
+def clean_address(address: str) -> str:
+    corrected = re.sub(r'(?i)(north|east|south|west|\n)', cardinal_to_letter,
+                       address.strip())
+    return corrected
+
+
+class ColorCoding:
+    UWHITE = '\033[4;37m'
+    UCYAN = '\033[4;36m'
+    UGREEN = '\033[4;32m'
+    URED = '\033[4;31m'
+    UBLUE = '\033[4;34m'
+
+    @staticmethod
+    def uwhite(highlight: Any) -> str:
+        return f'{ColorCoding.UWHITE}{highlight}{ColorCoding.UWHITE}'
+
+    @staticmethod
+    def ucyan(highlight: Any) -> str:
+        return f'{ColorCoding.UCYAN}{highlight}{ColorCoding.UWHITE}'
+
+    @staticmethod
+    def ugreen(highlight: Any) -> str:
+        return f'{ColorCoding.UGREEN}{highlight}{ColorCoding.UWHITE}'
+
+    @staticmethod
+    def ured(highlight: Any) -> str:
+        return f'{ColorCoding.URED}{highlight}{ColorCoding.UWHITE}'
+
+    @staticmethod
+    def ublue(highlight: Any) -> str:
+        return f'{ColorCoding.UBLUE}{highlight}{ColorCoding.UWHITE}'
+

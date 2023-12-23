@@ -1,4 +1,5 @@
 from __future__ import annotations
+from pathlib import Path
 import logging
 from utilities import debug, convert_minutes
 from typing import Union, TYPE_CHECKING
@@ -8,7 +9,8 @@ logger = logging.getLogger(__name__)
 # Specifies that only DEBUG level logs should be saved
 logger.setLevel(logging.DEBUG)
 # Specifies the name and path for the log file
-routing_handler = logging.FileHandler('../delivery_services/delivery_logs/truck.log')
+truck_log_file = Path.cwd() / 'delivery_services' / 'delivery_logs' / 'truck.log'
+routing_handler = logging.FileHandler(truck_log_file)
 # Specifies a format for the logs being recorded
 formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(name)s : %(message)s')
 # Sets the handler's formatter
@@ -75,7 +77,7 @@ class Truck:
             prev = curr
             curr = pkg.address
             self.total_miles += dh_graph.get_distance(prev, curr)
-            pkg.delivered_status(self)
+            pkg.set_delivered_status(self)
             truck_info = f'truck #: {self.__truck_number}'
             truck_info += f'delivered: {pkg.pkg_id}'
             truck_info += f'at {convert_minutes(pkg.delivered_at_time)} o\'clock local time.'

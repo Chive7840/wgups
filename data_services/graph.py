@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+from pathlib import Path
 from data_services.hash_table import HashTable
 from typing import TypeVar, Generic
 
@@ -8,7 +9,8 @@ logger = logging.getLogger(__name__)
 # Specifies that only DEBUG level logs should be saved
 logger.setLevel(logging.DEBUG)
 # Specifies the name and path for the log file
-graph_handler = logging.FileHandler('../data_services/data_logs/graph.log')
+graph_log_file = Path.cwd() / 'data_services' / 'data_logs' / 'graph.log'
+graph_handler = logging.FileHandler(graph_log_file)
 # Specifies a format for the logs being recorded
 formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(name)s : %(message)s')
 # Sets the handler's formatter
