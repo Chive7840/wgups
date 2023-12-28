@@ -267,7 +267,7 @@ class App(ctk.CTk):
         :return No return value:
         """
         time = deadline_to_minutes(time)
-        pkg = self.pkgs.get_bucket(pkg_id)
+        pkg = self.pkgs.fetch_bucket(pkg_id)
         txt_out = (f'Package ID: {pkg.pkg_id}; Address: {pkg.address} {pkg.city}, {pkg.state} {pkg.postal_code}; '
                    f'Weight: {pkg.weight}; Deadline: {pkg.promise_format()}; Status: {pkg.get_pkg_status(time)}')
 
@@ -313,7 +313,6 @@ class App(ctk.CTk):
 
         for pkg in self.pkg_id_desc[::-1]:
             txt = f'{pkg[1].get_pkg_information(current_time)}.\n'
-            txt = re.sub(r'\[\d+?;\d+?m', '', txt)
             textbox.insert('0.0', txt)
 
 

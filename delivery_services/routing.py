@@ -130,16 +130,16 @@ def pkg_importer() -> tuple[HashTable[int, PkgObject], HashTable[str, list[PkgOb
         for row in pkg_reader:
             n_pkg = PkgObject(*row)
             pkgs.insert(n_pkg.pkg_id, n_pkg)
-            if (lst_of_pkgs := pkg_dest_table.get_bucket(n_pkg.address)) is None:
+            if (lst_of_pkgs := pkg_dest_table.fetch_bucket(n_pkg.address)) is None:
                 lst_of_pkgs: list[PkgObject] = []
                 pkg_dest_table.insert(n_pkg.address, lst_of_pkgs)
             lst_of_pkgs.append(n_pkg)
             for depend_pkg in n_pkg.depend_pkgs:
-                if (depend_pkg_set := dependency_table.get_bucket(depend_pkg)) is None:
+                if (depend_pkg_set := dependency_table.fetch_bucket(depend_pkg)) is None:
                     depend_pkg_set = set()
                     dependency_table.insert(depend_pkg, depend_pkg_set)
                 depend_pkg_set.add(n_pkg)
-            for k_pkg in dependency_table.get_bucket(n_pkg.pkg_id) or []:
+            for k_pkg in dependency_table.fetch_bucket(n_pkg.pkg_id) or []:
                 k_pkg.pkg_dependencies.add(n_pkg)
                 n_pkg.pkg_dependencies.add(k_pkg)
     return pkgs, pkg_dest_table
@@ -173,7 +173,7 @@ def __priority_first(pkg_dest_table: HashTable[str, list[PkgObject]]):
                         continue
                     priority_pkgs.discard(pkg)
                     truck.load_truck(pkg)
-                    for k in (pkg_dest_table.get_bucket(pkg.address)) or []:
+                    for k in (pkg_dest_table.fetch_bucket(pkg.address)) or []:
                         if not truck.truck_full() and k.pkg_delivery_eligibility(truck):
                             priority_pkgs.discard(k)
                             truck.load_truck(k)

@@ -29,7 +29,7 @@ class DHGraph(Generic[obj_id]):
         self.__insert_graph_edge(hub_b, hub_a, distance)
 
     def __insert_graph_edge(self, hub_a: obj_id, hub_b: obj_id, distance: float):
-        self.graph_edge.get_bucket(hub_a).insert(hub_b, distance)
+        self.graph_edge.fetch_bucket(hub_a).insert(hub_b, distance)
 
     def insert_hub(self, dh: obj_id):
         """
@@ -46,6 +46,6 @@ class DHGraph(Generic[obj_id]):
         :param hub_b:
         :return Distance float value:
         """
-        dist_edge = self.graph_edge.get_bucket(hub_a).get_bucket(hub_b)
+        dist_edge = self.graph_edge.fetch_bucket(hub_a).fetch_bucket(hub_b)
         # logger.debug(f'Hub_A: {hub_a} Hub_B: {hub_b} Distance: {dist_edge}') #  Only enabled for troubleshooting
         return dist_edge

@@ -19,26 +19,26 @@ class HashTable(Generic[hsh_ind, hsh_val]):
 
     def insert(self, index: hsh_ind, value: hsh_val):
         """
-        The method inserts new key value pairs into the table or updates existing keys
+        The method inserts new key-value pairs into the table or updates existing keys
         :param index:
         :param value:
         :return:
         """
-        tmp_lst = self.__fetch_bucket(index)
+        tmp_table = self.__fetch_bucket(index)
 
-        for (h, (i, _)) in enumerate(tmp_lst):
+        for (h, (i, _)) in enumerate(tmp_table):
             if i == index:
-                tmp_lst[h] = (index, value)
+                tmp_table[h] = (index, value)
                 break
         else:
-            tmp_lst.append((index, value))
+            tmp_table.append((index, value))
             if self.can_resize:
                 self.size += 1
 
-        if len(tmp_lst) > self.bucket_max:
+        if len(tmp_table) > self.bucket_max:
             self.resize_table()
 
-    def get_bucket(self, index: hsh_ind) -> Optional[hsh_val]:
+    def fetch_bucket(self, index: hsh_ind) -> Optional[hsh_val]:
         """
         Returns a value if the hash index value matches the provided index
         :param index:
