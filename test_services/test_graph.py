@@ -9,7 +9,7 @@ class TestDHGraph(unittest.TestCase):
         dh_b = 'Delivery Hub b'
         tst_graph.insert_hub(dh_a)
         tst_graph.insert_hub(dh_b)
-        tst_graph.insert_edge(dh_a, dh_b, 1.0)
+        tst_graph.insert_graph_edge(dh_a, dh_b, 1.0)
         self.assertEqual(tst_graph.get_distance(dh_a, dh_b), 1.0)
 
     # Test results

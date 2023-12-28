@@ -1,19 +1,17 @@
 from __future__ import annotations
-from utilities import ColorCoding, convert_minutes, clean_address
-from pathlib import Path
+from utilities import convert_minutes, normalize_address, SOURCE_DIR
 import logging
 import re
 from enum import auto, Enum
 from typing import Optional, cast, TYPE_CHECKING
-
 
 # Creates a logger using the module name
 logger = logging.getLogger(__name__)
 # Specifies that only DEBUG level logs should be saved
 logger.setLevel(logging.DEBUG)
 # Specifies the name and path for the log file
-pkg_log_path = Path.cwd() / 'delivery_services' / 'delivery_logs' / 'pkg_handler.log'
-routing_handler = logging.FileHandler(pkg_log_path)
+pkg_log_file = SOURCE_DIR / 'delivery_services' / 'delivery_logs' / 'pkg_handler.log'
+routing_handler = logging.FileHandler(pkg_log_file)
 # Specifies a format for the logs being recorded
 formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(name)s : %(message)s')
 # Sets the handler's formatter
@@ -29,7 +27,7 @@ EOD = 60 * 24
 
 class PkgObject:
     # Used to implement the status codes for each segment of the delivery process
-    class StatusCodes(Enum):
+    class StatusCode(Enum):
         AT_HUB = auto()
         ENROUTE = auto()
         DELIVERED = auto()
@@ -73,30 +71,26 @@ class PkgObject:
         self.postal_code = postal_code
         self.delivery_promise = self.time_formatter(deadline)
         self.weight = int(weight)
-        self.__status = self.StatusCodes.AT_HUB
+        self.__status = self.StatusCode.AT_HUB
         self.__note_processor(note)
-        self.address = clean_address(f'{self.str_addr} ({self.postal_code})')
+        self.address = normalize_address(f'{self.str_addr} ({self.postal_code})')
 
     def __str__(self) -> str:
         """
         Takes some of the package attributes and structures them for print out if called
         :param self:
-        :return Color coded and concatenated string of a package's status:
+        :return Comma delimited string
         """
         delivery_promise = convert_minutes(self.delivery_promise)
-        pkg_info = [f'pkg_id: {self.pkg_id}', f'pkg_addr: {self.address}', f'pkg_status: {self.__status}',
-                    f'delivery_promise: {self.delivery_promise}']
+        pkg_info = [f'pkg_id: {self.pkg_id},', f'pkg_addr: {self.address},', f'pkg_status: {self.__status},',
+                    f'delivery_promise: {self.delivery_promise},']
 
         if self.delivered_at_time is not None:
-            pkg_info.append(f'Delivery Time: {convert_minutes(self.delivered_at_time)}')
+            pkg_info.append(f'Delivery Time: {convert_minutes(self.delivered_at_time)},')
             on_time = self.delivered_at_time < self.delivery_promise
-            if on_time:
-                highlight = ColorCoding.ugreen(on_time)
-            else:
-                highlight = ColorCoding.ured(on_time)
-            pkg_info.append(f'Delivered On Time: {highlight}')
+            pkg_info.append(f'Delivered On Time: {on_time}')
 
-        return str.join(', ', pkg_info)
+        return str.join(',', pkg_info)
 
     def pkg_prioritizer(self, time_stamp: float) -> bool:
         """
@@ -128,7 +122,7 @@ class PkgObject:
         if not self.set_at_hub():
             return False
 
-        if self.__truck_tracker is not None and self.__truck_tracker != truck.truck_number:
+        if self.__truck_tracker is not None and self.__truck_tracker != truck.truck:
             return False
 
         available_pkgs = True
@@ -177,17 +171,17 @@ class PkgObject:
         :param truck:
         :return No return value:
         """
-        if self.__status == self.StatusCodes.ENROUTE:
+        if self.__status == self.StatusCode.ENROUTE:
             logger.exception(f'Status: {self.__status}\t Truck: {truck}')
             raise Exception
 
-        if (self.__truck_tracker or truck.truck_number) != truck.truck_number:
-            logger.exception(f'Required Truck: {self.__truck_tracker}\t Truck: {truck.truck_number}')
+        if (self.__truck_tracker or truck.truck) != truck.truck:
+            logger.exception(f'Required Truck: {self.__truck_tracker}\t Truck: {truck.truck}')
             raise Exception
 
-        self.__delivered_by_truck = truck.truck_number
+        self.__delivered_by_truck = truck.truck
         self.__truck_loaded_at_time = truck.get_time_elapsed()
-        self.__status = self.StatusCodes.ENROUTE
+        self.__status = self.StatusCode.ENROUTE
 
     def set_delivered_status(self, truck: Truck) -> None:
         """
@@ -197,11 +191,11 @@ class PkgObject:
         :param truck:
         :return:
         """
-        if self.__status == self.StatusCodes.DELIVERED:
+        if self.__status == self.StatusCode.DELIVERED:
             logger.exception(f'Status: {self.__status}\t Truck: {truck}')
             raise Exception
 
-        self.__status = self.StatusCodes.DELIVERED
+        self.__status = self.StatusCode.DELIVERED
         self.delivered_at_time = truck.get_time_elapsed()
         self.__num_pkgs_delivered = truck.deliveries_completed
 
@@ -211,15 +205,15 @@ class PkgObject:
         :param self:
         :return Updates a package's status to Delivered in the object:
         """
-        return self.__status == self.StatusCodes.DELIVERED
+        return self.__status == self.StatusCode.DELIVERED
 
-    def set_at_hub(self) -> bool:
+    def set_at_hub(self) -> bool:  # TODO: Correct name and description to reflect that this is checking the status
         """
         Initializes the 'Status' variable field for packages as they are loaded into the hash table.
         :param self:
         :return Updates the package object directly:
         """
-        return self.__status == self.StatusCodes.AT_HUB
+        return self.__status == self.StatusCode.AT_HUB
 
     def address_correction_available(self, time: float) -> bool:
         """
@@ -247,7 +241,7 @@ class PkgObject:
         self.str_addr = '410 S State St'
         self.postal_code = '84111'
 
-    def __get_pkg_status(self, time: int) -> str:
+    def get_pkg_status(self, time: int) -> str:
         """
         Prints out the status of a package based on a provided time stamp using human
         recognizable output
@@ -266,8 +260,8 @@ class PkgObject:
         delivery_time = cast(float, self.delivered_at_time)
         truck_num = cast(int, self.__delivered_by_truck)
         if time < delivery_time:
-            return (f'The package is on {truck_num}. It was loaded at {convert_minutes(load_time)} and'
-                    f'the expected time of delivery is {delivery_time}')
+            return (f'The package is on truck number {truck_num}. It was loaded at {convert_minutes(load_time)} and'
+                    f' the expected time of delivery is {convert_minutes(delivery_time)}.')
 
         return f'The package was delivered at {convert_minutes(delivery_time)} by truck {truck_num}.'
 
@@ -282,7 +276,7 @@ class PkgObject:
 
         return convert_minutes(self.delivery_promise)
 
-    def __get_pkg_information(self, time: int) -> str:
+    def get_pkg_information(self, time: int) -> str:
         """
         Provides a printout of all the packages variables as a concatenated string for us in testing
         and returning information to user based queries.
@@ -290,31 +284,35 @@ class PkgObject:
         :param time:
         :return Concatenated string:
         """
-        pkg_info = [f'Pkg ID {self.pkg_id}', f'Address: {self.address}']
-        if (self.delivered_at_time or float('inf')) <= time:
-            pkg_info.append(ColorCoding.ugreen(self.StatusCodes.DELIVERED))
-        elif (self.__truck_loaded_at_time or float('inf')) <= time:
-            pkg_info.append(ColorCoding.ucyan(self.StatusCodes.ENROUTE))
-        else:
-            pkg_info.append(ColorCoding.ublue(self.StatusCodes.AT_HUB))
 
-        pkg_info.append(f'Package Delivery Promise: {self.promise_format()}')
+        pkg_info = [f'Package ID {self.pkg_id};\t']
+        if (self.delivered_at_time or float('inf')) <= time:
+            pkg_info.append(f'is currently marked as {self.StatusCode.DELIVERED};\t')
+        elif (self.__truck_loaded_at_time or float('inf')) <= time:
+            pkg_info.append(f'is currently {self.StatusCode.ENROUTE};\t')
+        else:
+            pkg_info.append(f'is currently {self.StatusCode.AT_HUB};\t')
+
+        if self.promise_format() == 'EOD':
+            pkg_info.append(f'the package will be delivered by 10:00 pm;\t')
+        else:
+            pkg_info.append(f'the scheduled delivery time is {self.promise_format()} am;\t')
 
         if (self.__truck_loaded_at_time or float('inf')) <= time:
-            pkg_info.append(f'Package loaded at {convert_minutes(self.__truck_loaded_at_time)}')
-            pkg_info.append(f'onto truck number {self.__truck_tracker} during delivery #: {self.__num_pkgs_delivered}')
+            pkg_info.append(f'the package was loaded onto truck {self.__delivered_by_truck};\t')
 
         if (self.delivered_at_time or float('inf')) <= time:
-            pkg_info.append(f'The package was delivered at {convert_minutes(self.delivered_at_time)}')
-            pkg_ontime = self.delivered_at_time < self.delivery_promise
-            if pkg_ontime:
-                txt_color = ColorCoding.ugreen(pkg_ontime)
+            delivered_ontime = self.delivered_at_time < self.delivery_promise
+            if delivered_ontime:
+                pkg_info.append(f'it was delivered on time at {convert_minutes(self.delivered_at_time)} am;\t')
             else:
-                txt_color = ColorCoding.ured(pkg_ontime)
-            pkg_info.append(f'Package delivered on time{txt_color}')
+                pkg_info.append(f'it was not delivered on time at {convert_minutes(self.delivered_at_time)} am;\t')
 
-        return str.join(';', pkg_info)
+            pkg_info.append(f'by truck {self.__delivered_by_truck};\t')
+            pkg_info.append(f'on route {self.__num_pkgs_delivered}')  # TODO: Fix the variable name for route number
+
+
+        return str.join('\t', pkg_info)
 
     def __hash__(self) -> int:
         return hash(self.pkg_id)
-

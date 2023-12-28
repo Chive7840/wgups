@@ -1,6 +1,12 @@
 import re
 import os
 from typing import Any, Match
+from pathlib import Path
+
+SOURCE_FILE = Path(__file__).resolve()
+SOURCE_DIR = SOURCE_FILE.parent
+ROOT_DIR = SOURCE_DIR.parent
+EMBEDDED_DIR = SOURCE_DIR / '__WGUPS Package File.csv'
 
 
 def debug(*args) -> None:
@@ -9,12 +15,56 @@ def debug(*args) -> None:
 
 
 def deadline_to_minutes(deadline: str) -> int:
+    """
+    Converts the provided deadline time string into an integer used
+    for calculating travel time for use when recording status change timestamps
+    :param deadline:
+    :return Time string converted into a usable integer:
+    """
     hrs, mins = list(map(int, deadline.split(":")))
     if 0 <= hrs < 24 and 0 <= mins < 60:
         return hrs * 60 + mins
 
 
-def MaxPrimeFactor(integer):
+def convert_minutes(minutes: float) -> str:
+    """
+    Returns a human friendly readable time string instead of a sum of time as minutes
+    :param minutes:
+    :return Time string:
+    """
+    return f'{int(minutes / 60)}:{int(minutes % 60):02}'
+
+
+def new_line_removal(a_match: Match[str]) -> str:
+    """
+    Removes all the newline breaks present in the data for normalization purposes
+    :param a_match:
+    :return Concatenated string with newlines removed:
+    """
+    tmp_match = a_match.group(0)[0]
+    if tmp_match == '\n':
+        return ' ' if tmp_match == '\n' else tmp_match.upper()
+
+
+def normalize_address(address: str) -> str:
+    """
+    Between the two files, the initialism for the cardinal directions is used
+    interchangably with the full words. This method normalizes the addresses to contain
+    just the initials
+    :param address:
+    :return Normalized address:
+    """
+    corrected = re.sub(r'(?i)(north|east|south|west|\n)', new_line_removal,
+                       address.strip())
+    return corrected
+
+
+def MaxPrimeFactor(integer) -> int:
+    """
+    Used to generate prime numbers for use in HashTable resizing
+    :param integer:
+    :return Next prime number:
+    """
     prime_factor = 1
     n = 2
 
@@ -32,6 +82,10 @@ def MaxPrimeFactor(integer):
 
 
 def prime_num_gen():
+    """
+    Used by the HashTable to resize when necessary
+    :return No return value:
+    """
     prime_nums = [2]
     while True:
         prime_num = prime_nums[-1]
@@ -41,48 +95,3 @@ def prime_num_gen():
             prime_num += 1
 
         prime_nums.append(prime_num)
-
-
-def convert_minutes(minutes: float) -> str:
-    return f'{int(minutes / 60)}:{int(minutes % 60):02}'
-
-
-def cardinal_to_letter(nl_match: Match[str]) -> str:
-    tmp_match = nl_match.group(0)[0]
-    if tmp_match == '\n':
-        return ' ' if tmp_match == '\n' else tmp_match.upper()
-
-
-def clean_address(address: str) -> str:
-    corrected = re.sub(r'(?i)(north|east|south|west|\n)', cardinal_to_letter,
-                       address.strip())
-    return corrected
-
-
-class ColorCoding:
-    UWHITE = '\033[4;37m'
-    UCYAN = '\033[4;36m'
-    UGREEN = '\033[4;32m'
-    URED = '\033[4;31m'
-    UBLUE = '\033[4;34m'
-
-    @staticmethod
-    def uwhite(highlight: Any) -> str:
-        return f'{ColorCoding.UWHITE}{highlight}{ColorCoding.UWHITE}'
-
-    @staticmethod
-    def ucyan(highlight: Any) -> str:
-        return f'{ColorCoding.UCYAN}{highlight}{ColorCoding.UWHITE}'
-
-    @staticmethod
-    def ugreen(highlight: Any) -> str:
-        return f'{ColorCoding.UGREEN}{highlight}{ColorCoding.UWHITE}'
-
-    @staticmethod
-    def ured(highlight: Any) -> str:
-        return f'{ColorCoding.URED}{highlight}{ColorCoding.UWHITE}'
-
-    @staticmethod
-    def ublue(highlight: Any) -> str:
-        return f'{ColorCoding.UBLUE}{highlight}{ColorCoding.UWHITE}'
-

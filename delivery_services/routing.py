@@ -1,5 +1,3 @@
-# External libraries
-from pathlib import Path
 import csv
 from typing import Iterable, Union, cast
 import logging
@@ -8,7 +6,7 @@ import logging
 from delivery_services.truck import Truck
 from delivery_services.delivery_hub import DeliveryHub
 from delivery_services.pkg_handler import PkgObject
-
+from utilities import SOURCE_DIR
 from data_services import DHGraph, HashTable
 
 # Creates a logger using the module name
@@ -16,8 +14,8 @@ logger = logging.getLogger(__name__)
 # Specifies that only DEBUG level logs should be saved
 logger.setLevel(logging.DEBUG)
 # Specifies the name and path for the log file
-routing_log_folder = Path.cwd() / 'delivery_services' / 'delivery_logs' / 'routing.log'
-routing_handler = logging.FileHandler(routing_log_folder)
+routing_logs = SOURCE_DIR / 'delivery_services' / 'delivery_logs' / 'routing.log'
+routing_handler = logging.FileHandler(routing_logs)
 # Specifies a format for the logs being recorded
 formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(name)s : %(message)s')
 # Sets the handler's formatter
@@ -25,8 +23,9 @@ routing_handler.setFormatter(formatter)
 # Adds the file handler to the logger
 logger.addHandler(routing_handler)
 
-pkgs_file = Path.cwd() / 'input_files' / '__WGUPS Package File.csv'
-distance_file = Path.cwd() / 'input_files' / '__WGUPS Distance Table.csv'
+
+__wgups_pkgs = SOURCE_DIR / 'input_files' / '__WGUPS Package File.csv'
+__wgups_dists = SOURCE_DIR / 'input_files' / '__WGUPS Distance Table.csv'
 
 HUB = 'HUB'
 time_at_base = 60 * 8
@@ -125,22 +124,22 @@ def pkg_importer() -> tuple[HashTable[int, PkgObject], HashTable[str, list[PkgOb
     pkg_dest_table = HashTable[str, list[PkgObject]]()
     dependency_table = HashTable[int, set[PkgObject]]()
 
-    with (open(pkgs_file) as pkg_f):
+    with (open(__wgups_pkgs) as pkg_f):
         pkg_reader = csv.reader(pkg_f, delimiter=';')
         next(pkg_reader)
         for row in pkg_reader:
             n_pkg = PkgObject(*row)
             pkgs.insert(n_pkg.pkg_id, n_pkg)
-            if (lst_of_pkgs := pkg_dest_table.get(n_pkg.address)) is None:
+            if (lst_of_pkgs := pkg_dest_table.get_bucket(n_pkg.address)) is None:
                 lst_of_pkgs: list[PkgObject] = []
                 pkg_dest_table.insert(n_pkg.address, lst_of_pkgs)
             lst_of_pkgs.append(n_pkg)
             for depend_pkg in n_pkg.depend_pkgs:
-                if (depend_pkg_set := dependency_table.get(depend_pkg)) is None:
+                if (depend_pkg_set := dependency_table.get_bucket(depend_pkg)) is None:
                     depend_pkg_set = set()
                     dependency_table.insert(depend_pkg, depend_pkg_set)
                 depend_pkg_set.add(n_pkg)
-            for k_pkg in dependency_table.get(n_pkg.pkg_id) or []:
+            for k_pkg in dependency_table.get_bucket(n_pkg.pkg_id) or []:
                 k_pkg.pkg_dependencies.add(n_pkg)
                 n_pkg.pkg_dependencies.add(k_pkg)
     return pkgs, pkg_dest_table
@@ -166,7 +165,7 @@ def __priority_first(pkg_dest_table: HashTable[str, list[PkgObject]]):
             for pkg in depend_pkg:
                 depend_pkg = depend_pkg.union(cast(set[PkgObject], pkg.pkg_dependencies))
             depend_pkg.add(nearest)
-            if truck.truck_cap() >= len(depend_pkg):
+            if truck.max_truck_capacity() >= len(depend_pkg):
                 while len(depend_pkg) != 0:
                     pkg = __find_nearest_hub(depend_pkg, truck.truck_location())
                     depend_pkg.discard(pkg)
@@ -174,7 +173,7 @@ def __priority_first(pkg_dest_table: HashTable[str, list[PkgObject]]):
                         continue
                     priority_pkgs.discard(pkg)
                     truck.load_truck(pkg)
-                    for k in (pkg_dest_table.get(pkg.address)) or []:
+                    for k in (pkg_dest_table.get_bucket(pkg.address)) or []:
                         if not truck.truck_full() and k.pkg_delivery_eligibility(truck):
                             priority_pkgs.discard(k)
                             truck.load_truck(k)
@@ -199,7 +198,7 @@ def deliver_remainder_of_pkgs() -> int:
 
 def distance_finder() -> DHGraph[Union[DeliveryHub, str]]:
     """
-    T(n) = O(n**2)
+    T(n) = O(n * (n-1)/2) = O(n**2)
     S(n) = O(n**2)
     Uses the distance chart provided for the project to build a graph by using the postal code and address
     as a unique identifier. This enables the delivery hub to searched for by either a string containing
@@ -208,7 +207,7 @@ def distance_finder() -> DHGraph[Union[DeliveryHub, str]]:
     :return Graph of Delivery Hubs:
     """
     dh_graph = DHGraph[Union[DeliveryHub, str]]()
-    with open(distance_file) as dist_f:
+    with open(__wgups_dists) as dist_f:
         delivery_hubs: list[DeliveryHub] = []
         hub_reader = csv.reader(dist_f, delimiter=';', quotechar='"')
         for dh_name, dh_addr, *dh_dists in hub_reader:
@@ -216,17 +215,17 @@ def distance_finder() -> DHGraph[Union[DeliveryHub, str]]:
             dh_graph.insert_hub(hub)
             delivery_hubs.append(hub)
             for (h, dist) in enumerate(dh_dists):
-                dh_graph.insert_edge(hub, delivery_hubs[h], float(dist))
+                dh_graph.insert_graph_edge(hub, delivery_hubs[h], float(dist))
         return dh_graph
 
 
 def auto_router() -> tuple[HashTable[int, PkgObject], list[Truck]]:
     """
     Assume:
-    m = number of delivery hubs
-    n = number of packages
-        T(n) = O(m**2) + O(n)
-        S(n) = O(m**2) + O(n)
+    n = number of delivery hubs
+    m = number of packages
+        T(n) = O(n**2) + O(m)
+        S(n) = O(n**2) + O(m)
     This method is responsible for determining the best way to deliver the packages
     :param: None
     :return: PKGS_ALL, TRUCKS
@@ -235,8 +234,8 @@ def auto_router() -> tuple[HashTable[int, PkgObject], list[Truck]]:
     global __TRUCKS_ALL
     global __GRAPH
     __TRUCKS_ALL = [Truck(), Truck()]
-    __PKGS_ALL, pkg_dest_table = pkg_importer()  # As defined above T(n) = O(n)
-    __GRAPH = distance_finder()  # O(m**2) m is the number of hubs in the graph
+    __PKGS_ALL, pkg_dest_table = pkg_importer()  # As defined above T(n) = O(m)
+    __GRAPH = distance_finder()  # O(n**2) m is the number of hubs in the graph
     priority_pending_delivery = True
     while priority_pending_delivery:
         __priority_first(pkg_dest_table)

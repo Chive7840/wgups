@@ -4,25 +4,21 @@ import utilities
 
 
 class DeliveryHub:
-    def __init__(self, dh_name: str, dh_address: str) -> None:
-        """
-        Constructor for each delivery hub object
-        :param dh_name:
-        :param dh_address:
-        """
+    def __init__(self, dh_name: str, dh_address: str):
         self.dh_name = dh_name
-        self.dh_address = utilities.clean_address(dh_address)
+        # Normalizes addresses as they are used for hash keys
+        self.dh_address = utilities.normalize_address(dh_address)
 
     def __str__(self) -> str:
         """
-        Dunder method for returning a reader-friendly representation of the delivery hub object
+        Dunder method for returning a human-friendly representation of the delivery hub object
         :return Delivery hub address:
         """
         return self.dh_address
 
     def __repr__(self) -> str:
         """
-        Printable representation of the delivery hub object
+        Printable string representation of the delivery hub object
         :return Address string:
         """
         return self.dh_address
