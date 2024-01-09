@@ -169,7 +169,7 @@ def __priority_first(pkg_dest_table: HashTable[str, list[PkgObject]]):
                 while len(depend_pkg) != 0:
                     pkg = __find_nearest_hub(depend_pkg, truck.truck_location())
                     depend_pkg.discard(pkg)
-                    if not pkg.set_at_hub():
+                    if not pkg.check_at_hub_status():
                         continue
                     priority_pkgs.discard(pkg)
                     truck.load_truck(pkg)
@@ -184,13 +184,13 @@ def deliver_remainder_of_pkgs() -> int:
     T(n) = O(n)
     S(n) = O(n)
     Used to deliver any remaining packages after priority packages have been delivered
-    :param: None
-    :return: int
+    :param No input parameters:
+    :return returns the number of routes for a truck as an integer:
     """
     pkg_lst = []
-    for pkg in __PKGS_ALL:
-        if pkg[1].set_at_hub():
-            pkg_lst.append(pkg[1])
+    for (_, pkg) in __PKGS_ALL:
+        if pkg.check_at_hub_status():
+            pkg_lst.append(pkg)
 
     sort_packages(pkg_lst)
     return route_trucks()
@@ -201,7 +201,7 @@ def distance_finder() -> DHGraph[Union[DeliveryHub, str]]:
     T(n) = O(n * (n-1)/2) = O(n**2)
     S(n) = O(n**2)
     Uses the distance chart provided for the project to build a graph by using the postal code and address
-    as a unique identifier. This enables the delivery hub to searched for by either a string containing
+    as a unique identifier. This enables the delivery hub to be searched for by either a string containing
     this information or the delivery hub object.
     :param: None
     :return Graph of Delivery Hubs:
@@ -227,8 +227,8 @@ def auto_router() -> tuple[HashTable[int, PkgObject], list[Truck]]:
         T(n) = O(n**2) + O(m)
         S(n) = O(n**2) + O(m)
     This method is responsible for determining the best way to deliver the packages
-    :param: None
-    :return: PKGS_ALL, TRUCKS
+    :param No input parameters:
+    :return A tuple containing the hash table and a list of trucks, __PKGS_ALL and __TRUCKS_ALL:
     """
     global __PKGS_ALL
     global __TRUCKS_ALL

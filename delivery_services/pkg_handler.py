@@ -58,7 +58,7 @@ class PkgObject:
     __available_when = 0.0
     pkg_dependencies: set[PkgObject]
     depend_pkgs: set[int]
-    __num_pkgs_delivered = 0
+    __route_number = 0
 
     def __init__(self, pkg_id: str, addr: str, city: str, state: str, postal_code: str,
                  deadline: str, weight: str, note: str):
@@ -101,7 +101,7 @@ class PkgObject:
         :param time_stamp:
         :return at_hub status and when the package will be available:
         """
-        return self.set_at_hub() and self.delivery_promise < EOD and self.__available_when <= time_stamp
+        return self.check_at_hub_status() and self.delivery_promise < EOD and self.__available_when <= time_stamp
 
     def pkg_delivery_eligibility(self, truck: Truck, exclude_pkg: set[PkgObject] = set()) -> bool:
         """
@@ -119,7 +119,7 @@ class PkgObject:
         if self.__available_when > truck.get_time_elapsed():
             return False
 
-        if not self.set_at_hub():
+        if not self.check_at_hub_status():
             return False
 
         if self.__truck_tracker is not None and self.__truck_tracker != truck.truck:
@@ -197,7 +197,7 @@ class PkgObject:
 
         self.__status = self.StatusCode.DELIVERED
         self.delivered_at_time = truck.get_time_elapsed()
-        self.__num_pkgs_delivered = truck.deliveries_completed
+        self.__route_number = truck.deliveries_completed
 
     def pkg_is_delivered(self) -> bool:
         """
@@ -207,11 +207,11 @@ class PkgObject:
         """
         return self.__status == self.StatusCode.DELIVERED
 
-    def set_at_hub(self) -> bool:  # TODO: Correct name and description to reflect that this is checking the status
+    def check_at_hub_status(self) -> bool:
         """
-        Initializes the 'Status' variable field for packages as they are loaded into the hash table.
+        A method for checking if the current status of a package object is "AT_HUB"
         :param self:
-        :return Updates the package object directly:
+        :return A bool value (True/False) that determines if the current status is "AT_HUB":
         """
         return self.__status == self.StatusCode.AT_HUB
 
@@ -309,8 +309,37 @@ class PkgObject:
                 pkg_info.append(f'it was not delivered on time at {convert_minutes(self.delivered_at_time)} am;\t')
 
             pkg_info.append(f'by truck {self.__delivered_by_truck};\t')
-            pkg_info.append(f'on route {self.__num_pkgs_delivered}')  # TODO: Fix the variable name for route number
+            pkg_info.append(f'on route {self.__route_number}')
 
+        return str.join('\t', pkg_info)
+
+    def all_pkg_info_status(self, time: int) -> str:
+        """
+        Returns information for all package attributes as well as the delivery time and status
+        :param time:
+        :return String of package status/status information:
+        """
+        pkg_info = [f'Package ID: {self.pkg_id};\t',f'Address: {self.address};\t', f'City: {self.city};\t',
+                    f'State: {self.state};\t', f'Postal Code {self.postal_code};\t, Weight(kg): {self.weight};\t']
+
+        if self.promise_format() == 'EOD':
+            pkg_info.append(f'Delivery Promise: EOD;\t')
+        else:
+            pkg_info.append(f'Delivery Promise: {self.promise_format()} am;\t')
+
+        if (self.delivered_at_time or float('inf')) <= time:
+            pkg_info.append(f'{self.StatusCode.DELIVERED};\t')
+        elif (self.__truck_loaded_at_time or float('inf')) <= time:
+            pkg_info.append(f'{self.StatusCode.ENROUTE};\t')
+        else:
+            pkg_info.append(f'{self.StatusCode.AT_HUB};\t')
+
+        if (self.delivered_at_time or float('inf')) <= time:
+            delivered_ontime = self.delivered_at_time < self.delivery_promise
+            if delivered_ontime:
+                pkg_info.append(f'Delivery Time: {convert_minutes(self.delivered_at_time)} am')
+            else:
+                pkg_info.append(f'it was not delivered on time at {convert_minutes(self.delivered_at_time)} am')
 
         return str.join('\t', pkg_info)
 

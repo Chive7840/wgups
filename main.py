@@ -6,6 +6,7 @@
 # Internal modules
 from delivery_services.routing import auto_router
 from utilities import convert_minutes, deadline_to_minutes
+from delivery_services.pkg_handler import PkgObject
 
 # External libraries/modules
 import pandas as pd
@@ -74,7 +75,7 @@ class App(ctk.CTk):
         self.logo_label = ctk.CTkLabel(self.left_sidebar, text="Ship-O-Matic",
                                        font=ctk.CTkFont(family='Arial', size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
-        self.display_all_pkgs = ctk.CTkButton(self.left_sidebar, command=self.display_all_pkgs_event)
+        self.display_all_pkgs = ctk.CTkButton(self.left_sidebar, command=self.pkg_status_info_request_event)
         self.display_all_pkgs.grid(row=1, column=0, padx=20, pady=10)
         self.status_all_pkgs = ctk.CTkButton(self.left_sidebar, command=self.pkg_status_request_event)
         self.status_all_pkgs.grid(row=2, column=0, padx=20, pady=10)
@@ -113,13 +114,20 @@ class App(ctk.CTk):
         Used as a splash screen on startup the method displays student/class information
         :return No return value:
         """
-        welcome_msg = [f"Data Structure: Chaining HashTable", f'Algorith Name: Nearest Neighbor\n'
-                                                              f"Course: Data Structures & Algorithms II - C950\n",
-                       f'Student ID: 000366007\n', f'Student Name: Gerald Carter\n']
+        time = datetime.now()
+        welcome_msg = ['NHP3 – NP3 Task 2: WGUPS Routing Program Implementation\n\n'
+                       'Student Name: Gerald Carter\n\n',
+                       'Student ID: 000366007\n\n'
+                       f'Department of Computer Science, Western Governors University\n\n',
+                       'Course Name: C950 - Data Structures & Algorithms II\n\n',
+                       'Instructor Name: Preety Khatri\n\n'
+                       f'Date: {time.date()}\n\n'
+                       'Algorith Name: Nearest Neighbor\n\n',
+                       ' Data Structure: Chaining HashTable']
 
         textbox = ctk.CTkTextbox(master=self, width=250, font=ctk.CTkFont(family='Arial', size=15, weight="bold"))
         textbox.grid(row=0, rowspan=3, column=1, columnspan=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
-        for item in welcome_msg:
+        for item in welcome_msg[::-1]:
             textbox.insert('0.0', item)
 
     def pkg_data_refresh(self):
@@ -210,32 +218,32 @@ class App(ctk.CTk):
             self.__error = self.ErrorCode.INVALID_TIME
             self.raise_error(usr_time)
 
-    def display_all_pkgs_event(self):  # Explicitly called by pressing the display_all_pkgs button
-        """
-        This method is initialized when the 'show all packages' (display_all_pkgs) button is pressed.
-        After initialization the method builds a stylized table using pandas and pandastable
-        The data is pulled, sorted, and refreshed by the 'pkg_data_refresh' method
-        Pandas only provides a structure for displaying the information as a table.
-        :param self:
-        :return No return value:
-        """
-        if self.display_all_pkgs:
-            self.pkg_data_refresh()
-            self.textbox.delete("0.0", "200.0")
-            pkgs_frame = ctk.CTkFrame(self, width=250)
-            pkgs_frame.grid(row=0, rowspan=3, column=1, columnspan=3,
-                            padx=(20, 20), pady=(20, 20), sticky="nsew")
-            pkgs_frame = ctk.CTkFrame(self, width=250)
-            pkgs_frame.grid(row=0, rowspan=3, column=1, columnspan=3,
-                            padx=(20, 20), pady=(20, 20), sticky="nsew")
-            pt = Table(pkgs_frame)
-            pkgs_df = pd.DataFrame(self.ordered_pkg_lst, columns=['Package ID', 'Address', 'City',
-                                                                  'State', 'Postal Code', 'Deadline'])
-            pkgs_table = pt = Table(pkgs_frame, dataframe=pkgs_df,
-                                    showtoolbar=False, showstatusbar=False)
-
-            config.apply_options(self.options, pkgs_table)
-            pt.show()
+    # May use in future development
+    # def display_all_pkgs_event(self):  # Explicitly called by pressing the display_all_pkgs button
+    #     """
+    #     This method is initialized when the 'show all packages' (display_all_pkgs) button is pressed.
+    #     After initialization the method builds a stylized table using pandas and pandastable
+    #     The data is pulled, sorted, and refreshed by the 'pkg_data_refresh' method
+    #     Pandas only provides a structure for displaying the information as a table.
+    #     :param self:
+    #     :return No return value:
+    #     """
+    #     self.pkg_data_refresh()
+    #     self.textbox.delete("0.0", "200.0")
+    #     pkgs_frame = ctk.CTkFrame(self, width=250)
+    #     pkgs_frame.grid(row=0, rowspan=3, column=1, columnspan=3,
+    #                     padx=(20, 20), pady=(20, 20), sticky="nsew")
+    #     pkgs_frame = ctk.CTkFrame(self, width=250)
+    #     pkgs_frame.grid(row=0, rowspan=3, column=1, columnspan=3,
+    #                     padx=(20, 20), pady=(20, 20), sticky="nsew")
+    #     pt = Table(pkgs_frame)
+    #     pkgs_df = pd.DataFrame(self.ordered_pkg_lst, columns=['Package ID', 'Address', 'City',
+    #                                                           'State', 'Postal Code', 'Deadline'])
+    #     pkgs_table = pt = Table(pkgs_frame, dataframe=pkgs_df,
+    #                             showtoolbar=False, showstatusbar=False)
+    #
+    #     config.apply_options(self.options, pkgs_table)
+    #     pt.show()
 
     def user_txt_search_event(self):
         """
@@ -286,7 +294,7 @@ class App(ctk.CTk):
         textbox = ctk.CTkTextbox(self, width=250, font=ctk.CTkFont(family='Arial', size=22, weight="bold"))
         textbox.grid(row=0, rowspan=3, column=1, columnspan=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
 
-        for truck in self.trucks:
+        for truck in self.trucks[::-1]:
             truck_txt = f'Truck number {truck.truck} traveled a total of {truck.total_miles} miles.\n'
             textbox.insert('0.0', truck_txt)
 
@@ -311,10 +319,35 @@ class App(ctk.CTk):
         textbox.grid(row=0, rowspan=3, column=1, columnspan=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
         textbox.configure(scrollbar_button_color="", scrollbar_button_hover_color="")
 
-        for pkg in self.pkg_id_desc[::-1]:
-            txt = f'{pkg[1].get_pkg_information(current_time)}.\n'
+        for (_, pkg) in self.pkg_id_desc[::-1]:
+            txt = f'{pkg.get_pkg_information(current_time)}\n'
             textbox.insert('0.0', txt)
 
+    def pkg_status_info_request_event(self):
+        """
+        This method calls the 'pkg_data_refresh' method to ensure that it's using fresh data.
+        It then provides a print out of all packages for a specified time which includes all package
+         attributets and delivery status/time
+         If no time is provided by the user then the current system time is used.
+        :return No return value:
+        """
+        time = datetime.now()
+        self.pkg_data_refresh()
+        usr_time = self.time_entry_popup()
+        if usr_time is not None:
+            current_time = deadline_to_minutes(str(usr_time))
+        else:
+            current_time = deadline_to_minutes(str(time.strftime("%H:%M")))
+
+        self.textbox.delete("0.0", "200.0")
+        textbox = ctk.CTkTextbox(self, width=250, font=ctk.CTkFont(family='Arial', size=16),
+                                 wrap=ctk.WORD)
+        textbox.grid(row=0, rowspan=3, column=1, columnspan=3, padx=(20, 20), pady=(20, 20), sticky="nsew")
+        textbox.configure(scrollbar_button_color="", scrollbar_button_hover_color="")
+
+        for (_, pkg) in self.pkg_id_desc[::-1]:
+            status_info_txt = f'{pkg.all_pkg_info_status(current_time)}\n'
+            textbox.insert('0.0', status_info_txt)
 
 if __name__ == "__main__":
     app = App()
